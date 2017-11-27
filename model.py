@@ -6,9 +6,9 @@ class Seq2Seq():
     def __init__(self, hparams, iterator, mode, src1_vocab_table, src2_vocab_table, tgt_vocab_table):
         self.iterator = iterator
         self.num_layers = hparams.num_layers
-        self.src_vocab_size = hparams.src_vocab_size
-        self.src_pos_size = hparams.src_pos_size
-        self.tgt_class_size = hparams.tgt_vocab_size
+        self.word_vocab_size = hparams.word_vocab_size
+        self.pos_vocab_size = hparams.pos_vocab_size
+        self.role_vocab_size = hparams.role_vocab_size
         self.word_emb_dim = hparams.word_emb_dim
         self.pos_emb_dim = hparams.pos_emb_dim
         self.num_units = hparams.num_units
@@ -24,18 +24,20 @@ class Seq2Seq():
         self.batch_size = tf.size(self.iterator.source_sequence_length)
 
         with tf.variable_scope("embedding") as scope:
-            self.word_embeddings = tf.Variable(self.init_matrix([self.src_vocab_size, self.word_emb_dim]))
-            self.pos_embeddings = tf.Variable(self.init_matrix([self.src_pos_size, self.pos_emb_dim]))
+            self.word_embeddings = tf.Variable(self.init_matrix([self.word_vocab_size, self.word_emb_dim]))
+            self.pos_embeddings = tf.Variable(self.init_matrix([self.pos_vocab_size, self.pos_emb_dim]))
 
 
         with tf.variable_scope("project") as scope:
-            self.output_layer = layers_core.Dense(self.tgt_class_size, use_bias=True)
+            self.output_layer = layers_core.Dense(self.role_vocab_size, use_bias=True)
 
         res = self.build_graph()
         if self.mode != tf.contrib.learn.ModeKeys.INFER:
             self.loss = res[0]
         self.sample = res[2]
         self.alignment = res[3]
+        self.predictions = res[4]
+        self.labels = iterator.target_output
         self.global_step = tf.Variable(0, trainable=False)
         if self.mode != tf.contrib.learn.ModeKeys.INFER:
             self.predict_count = tf.reduce_sum(self.iterator.target_sequence_length)
@@ -43,7 +45,8 @@ class Seq2Seq():
 
         if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
             with tf.variable_scope("train_op") as scope:
-                optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
+                optimizer = tf.train.AdamOptimizer(self.learning_rate)
+                # optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
                 gradients, v = zip(*optimizer.compute_gradients(self.loss))
                 gradients, _ = tf.clip_by_global_norm(gradients, self.clip_value)
                 self.train_op = optimizer.apply_gradients(zip(gradients, v), global_step=self.global_step)
@@ -66,10 +69,10 @@ class Seq2Seq():
             logits, sample_id, final_context_state, alignment = self.build_decoder(encoder_output, encoder_state)
 
             if self.mode != tf.contrib.learn.ModeKeys.INFER:
-                loss = self.compute_loss(logits)
+                loss, predictions = self.compute_loss(logits)
             else:
-                loss = "NaN"
-        return loss, logits, sample_id, alignment
+                loss, predictions = "NaN", "NaN"
+        return loss, logits, sample_id, alignment, predictions
 
     def build_encoder(self):
         iterator = self.iterator
@@ -135,11 +138,14 @@ class Seq2Seq():
                                                          output_layer=self.output_layer
                                                          )
         decoder_outputs, decoder_state, decoder_output_len = tf.contrib.seq2seq.dynamic_decode(my_decoder,
-                                                                                                   maximum_iterations=100,
+                                                                                                   maximum_iterations=300,
                                                                                                    swap_memory=True, )
 
-        sample_id = decoder_outputs.sample_id
         logits = decoder_outputs.rnn_output
+        if self.mode != tf.contrib.learn.ModeKeys.INFER:
+            sample_id = decoder_outputs.sample_id
+        else:
+            sample_id = tf.argmax(logits, 2)
         return logits, sample_id, decoder_state, 0
 
 
@@ -152,21 +158,25 @@ class Seq2Seq():
         target_weights = tf.sequence_mask(iterator.target_sequence_length, max_time, dtype=tf.float32)
         crossent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=iterator.target_output, logits=logits)
         loss = tf.reduce_sum(crossent * target_weights) / tf.to_float(self.batch_size)
-        return loss
+        predictions = tf.argmax(logits, 2)
+        return loss, predictions
 
     def train(self, sess):
         return sess.run([self.train_op,
                          self.loss,
                          self.predict_count,
-                         self.global_step])
+                         self.global_step,
+                         self.predictions,
+                         self.labels])
 
     def eval(self, sess):
         return sess.run([self.loss,
                          self.predict_count,
-                         self.batch_size])
+                         self.batch_size,
+                         self.predictions,
+                         self.labels])
     def infer(self, sess):
-        return sess.run([self.sample,
-                         self.alignment])
+        return sess.run(self.sample)
     def lr_decay(self, sess):
         return sess.run(self.learning_rate_decay_op)
 

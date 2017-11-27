@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="sftp://wangtm@172.31.32.105:22/home/wangtm/anaconda3/bin/python" autoUploadExternalChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="集群3" createEmptyFolders="true" autoUploadExternalChanges="true">
     <serverData>
       <paths name="sftp://wangtm@172.31.32.105:22/home/wangtm/anaconda3/bin/python">
         <serverdata>
@@ -19,7 +19,7 @@
       <paths name="集群3">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/code/RoleLabel" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

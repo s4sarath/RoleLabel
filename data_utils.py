@@ -4,16 +4,13 @@ title = []
 story = []
 dic = []
 _PAD = "_PAD"
-_GO = "_GO"
-_EOS = "_EOS"
+
 _UNK = "_UNK"
-_START_VOCAB = [_PAD, _GO, _EOS, _UNK]
+_START_VOCAB = [_PAD, _UNK]
 
 PAD_ID = 0
-GO_ID = 1
-SOS_ID = 1
-EOS_ID = 2
-UNK_ID = 3
+UNK_ID = 1
+
 def initialize_vocabulary(vocabulary_path):
   if gfile.Exists(vocabulary_path):
     rev_vocab = []

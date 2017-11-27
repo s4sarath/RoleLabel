@@ -19,7 +19,7 @@ def get_infer_iterator(src1_dataset,
     src_pad_id = data_utils.PAD_ID
     src_dataset = tf.contrib.data.Dataset.zip((src1_dataset, src2_dataset))
     src_dataset = src_dataset.map(lambda src1, src2: (tf.string_split([src1]).values,
-                                                      tf.string_split([src2])))
+                                                      tf.string_split([src2]).values))
 
     if src_max_len:
         src_dataset = src_dataset.map(lambda src1 ,src2: (src1[:src_max_len], src2[:src_max_len]))
@@ -90,7 +90,7 @@ def get_iterator(src1_dataset,
         output_buffer_size=output_buffer_size)
 
     src_tgt_dataset = src_tgt_dataset.filter(
-        lambda src1, src2, tgt: tf.logical_and(tf.size(src1) > 0, tf.size(src2)>0, tf.size(tgt) > 0))
+         lambda src1, src2, tgt: tf.logical_and(tf.size(src1) > 0, tf.size(tgt) > 0))
     if src_max_len:
         src_tgt_dataset = src_tgt_dataset.map(
             lambda src1, src2, tgt: (src1[:src_max_len], src2[:src_max_len], tgt),

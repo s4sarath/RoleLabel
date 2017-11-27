@@ -3,7 +3,7 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="sftp://wangtm@172.31.32.105:22/home/wangtm/anaconda3/bin/python" name="sftp://wangtm@172.31.32.105:22/home/wangtm/anaconda3/bin/python">
-        <fileTransfer host="172.31.32.105" port="22" accessType="SFTP">
+        <fileTransfer host="172.31.32.105" port="22" rootFolder="/home/wangtm" accessType="SFTP">
           <option name="port" value="22" />
         </fileTransfer>
       </webServer>
